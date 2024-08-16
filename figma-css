@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS to JSON Converter Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+        }
+        button {
+            margin-top: 10px;
+        }
+        #output {
+            white-space: pre-wrap;
+            background-color: #f4f4f4;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSS to JSON Converter Dashboard</h1>
+    
+    <label for="componentSelect">Select Component:</label>
+    <select id="componentSelect">
+        <option value="button">Button</option>
+        <option value="input">Input</option>
+        <option value="custom">Custom Component</option>
+    </select>
+    
+    <div id="customComponentForm" style="display:none;">
+        <h3>Add Custom Component</h3>
+        <input type="text" id="customComponentName" placeholder="Component Name">
+        <textarea id="customComponentJSON" placeholder="Paste example JSON object here"></textarea>
+        <button onclick="addCustomComponent()">Add Custom Component</button>
+    </div>
+    
+    <h3>CSS Input</h3>
+    <textarea id="cssInput" placeholder="Paste your CSS here"></textarea>
+    
+    <button onclick="convertCssToJson()">Convert to JSON</button>
+    
+    <h3>JSON Output</h3>
+    <pre id="output"></pre>
+
+    <script>
+        const componentSelect = document.getElementById('componentSelect');
+        const customComponentForm = document.getElementById('customComponentForm');
+        const cssInput = document.getElementById('cssInput');
+        const output = document.getElementById('output');
+        
+        const customComponents = {};
+
+        componentSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customComponentForm.style.display = 'block';
+            } else {
+                customComponentForm.style.display = 'none';
+            }
+        });
+
+        function addCustomComponent() {
+            const name = document.getElementById('customComponentName').value;
+            const json = document.getElementById('customComponentJSON').value;
+            
+            if (name && json) {
+                customComponents[name] = JSON.parse(json);
+                const option = new Option(name, name);
+                componentSelect.add(option);
+                componentSelect.value = name;
+                customComponentForm.style.display = 'none';
+            } else {
+                alert('Please provide both a name and JSON for the custom component.');
+            }
+        }
+
+        function parseCss(cssString) {
+            return cssString.split('\n').reduce((acc, line) => {
+                const [key, value] = line.split(':').map(s => s.trim());
+                if (key && value) {
+                    acc[key] = value.replace(';', '');
+                }
+                return acc;
+            }, {});
+        }
+
+        function convertCssToJson() {
+            const css = parseCss(cssInput.value);
+            const componentType = componentSelect.value;
+            
+            let jsonOutput;
+            
+            if (customComponents[componentType]) {
+                jsonOutput = customComponents[componentType];
+                // Update CSS properties in the custom component
+                jsonOutput.ui.css[Object.keys(jsonOutput.ui.css)[0]] = {
+                    ...jsonOutput.ui.css[Object.keys(jsonOutput.ui.css)[0]],
+                    ...css
+                };
+            } else if (componentType === 'button') {
+                jsonOutput = {
+                    type_id: "BUTTON",
+                    ui: {
+                        content: {
+                            text: "Button",
+                            cta: {
+                                name: "Button",
+                                target: "NATIVE",
+                                event: {
+                                    eventName: "OPEN_DEEPLINK",
+                                    data: {
+                                        deepLink: "www.example.com"
+                                    }
+                                }
+                            }
+                        },
+                        css: {
+                            button: css
+                        }
+                    }
+                };
+            } else if (componentType === 'input') {
+                jsonOutput = {
+                    type_id: "INPUT",
+                    ui: {
+                        content: {
+                            placeholder: "Enter text"
+                        },
+                        css: {
+                            input: css
+                        }
+                    }
+                };
+            }
+            
+            output.textContent = JSON.stringify(jsonOutput, null, 2);
+        }
+    </script>
+</body>
+</html>
